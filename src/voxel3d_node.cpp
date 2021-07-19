@@ -173,25 +173,40 @@ int voxel3d_publishImage(void)
          * Publish PointCloud2
          */
         if (pcl_pixels) {
-            sensor_msgs::PointCloud2 output;
-            pcl::PointCloud<pcl::PointXYZ> cloud;
+            int xyz_idx = 0;
+
+            sensor_msgs::PointCloud2 cloud;
+            cloud.header.frame_id = "odom";
+            cloud.header.stamp = ros_time;
             cloud.width = pcl_pixels;
             cloud.height = 1;
-            cloud.header.frame_id = "odom";
-            //cloud.header.stamp = ros_time;
-            cloud.points.resize(cloud.width * cloud.height);
-            pcl_conversions::toPCL(ros_time, cloud.header.stamp);
+            cloud.is_bigendian = false;
+            cloud.is_dense = false;
+            cloud.point_step = (uint32_t)(3 * sizeof(float)); //XYZ
+            cloud.row_step = (uint32_t)(cloud.point_step * pcl_pixels);
+            cloud.fields.resize(3);
+            cloud.fields[0].name = "x";
+            cloud.fields[0].offset = 0;
+            cloud.fields[0].datatype = sensor_msgs::PointField::FLOAT32;
+            cloud.fields[0].count = 1;
+            cloud.fields[1].name = "y";
+            cloud.fields[1].offset = cloud.fields[0].offset + (uint32_t)sizeof(float);
+            cloud.fields[1].datatype = sensor_msgs::PointField::FLOAT32;
+            cloud.fields[1].count = 1;
+            cloud.fields[2].name = "z";
+            cloud.fields[2].offset = cloud.fields[1].offset + (uint32_t)sizeof(float);
+            cloud.fields[2].datatype = sensor_msgs::PointField::FLOAT32;
+            cloud.fields[2].count = 1;
+            cloud.data.resize(cloud.point_step * pcl_pixels);
 
-            int xyz_idx = 0;
-            for (int ix = 0; ix < cloud.points.size();
-                 ix++, xyz_idx += 3) {
-                cloud.points[ix].x = xyz[xyz_idx];
-                cloud.points[ix].y = xyz[xyz_idx + 1];
-                cloud.points[ix].z = xyz[xyz_idx + 2];
+            for (int ix = 0; ix < pcl_pixels; ix++, xyz_idx += 3) {
+                float *p_x = (float *)&cloud.data[ix * cloud.point_step];
+                *p_x = xyz[xyz_idx];
+                *(p_x + 1) = xyz[xyz_idx + 1];
+                *(p_x + 2) = xyz[xyz_idx + 2];
             }
+            pub_pointcloud.publish(cloud);
 
-            pcl::toROSMsg(cloud, output);
-            pub_pointcloud.publish(output);
         }
 
         /*
