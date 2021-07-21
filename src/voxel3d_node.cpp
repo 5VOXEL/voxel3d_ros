@@ -16,6 +16,7 @@ static const std::string TOPIC_NAME_DEPTH = "/voxel3d/depth";
 static const std::string TOPIC_NAME_POINTS = "/voxel3d/points";
 static const std::string TOPIC_NAME_CAMERA_INFO = "/voxel3d/camera_info";
 
+static unsigned short depthmap[TOF_DEPTH_PIXELS];
 static float xyz[TOF_DEPTH_PIXELS * 3];
 
 int voxel3d_build_cam_info(sensor_msgs::CameraInfo *p_cam_info)
@@ -92,6 +93,8 @@ int voxel3d_build_cam_info(sensor_msgs::CameraInfo *p_cam_info)
 int voxel3d_publishImage(void)
 {
     unsigned int frame_index = 0;
+    int pcl_pixels = 0;
+    float *f_data;
     ros::Time ros_time;
     ros::NodeHandle nh;
 
@@ -102,10 +105,10 @@ int voxel3d_publishImage(void)
     sensor_msgs::Image depth_image;
     depth_image.width = TOF_DEPTH_WIDTH;
     depth_image.height = TOF_DEPTH_HEIGHT;
-    depth_image.encoding = "16UC1";
+    depth_image.encoding = "32FC1";
     depth_image.is_bigendian = false;
-    depth_image.step = TOF_DEPTH_WIDTH * sizeof(unsigned short);
-    depth_image.data.resize(TOF_DEPTH_ONLY_FRAME_SIZE);
+    depth_image.step = depth_image.width * sizeof(float);
+    depth_image.data.resize(depth_image.step * depth_image.height);
     ros::Publisher pub_depth = nh.advertise<sensor_msgs::Image>(TOPIC_NAME_DEPTH, 1);
 
     /*
@@ -143,7 +146,7 @@ int voxel3d_publishImage(void)
          * Query frame from 5Voxel 5Z01A
          */
         frame_index = voxel3d_queryframe(
-                       (unsigned short *)&(depth_image.data[0]),
+                       (unsigned short *)&depthmap[0],
                        (unsigned short *)&(ir_image.data[0]));
 
         ros_time = ros::Time::now();
@@ -153,6 +156,10 @@ int voxel3d_publishImage(void)
          */
         depth_image.header.frame_id = frame_index;
         depth_image.header.stamp = ros_time;
+        f_data = (float *)&depth_image.data[0];
+        for (int ix = 0; ix < TOF_DEPTH_PIXELS; ix++, f_data++) {
+            *f_data = (float)depthmap[ix] * 0.001f; //mm -> m
+        }
         pub_depth.publish(depth_image);
 
         /*
@@ -165,9 +172,9 @@ int voxel3d_publishImage(void)
         /*
          * 5Voxel library to generate PointCloud data
          */
-        int pcl_pixels = voxel3d_generatePointCloud(
-                          (unsigned short *)&(depth_image.data[0]),
-                          (float *)xyz);
+        pcl_pixels = voxel3d_generatePointCloud(
+                      &depthmap[0],
+                      (float *)xyz);
 
         /*
          * Publish PointCloud2

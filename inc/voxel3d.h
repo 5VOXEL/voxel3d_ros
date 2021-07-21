@@ -66,8 +66,8 @@ void voxel3d_release(void);
  *     depthmap: pointer of user-allocated buffer for Depth frame storage
  *     irmap: pointer of user-allocated buffer for IR frame storage
  * Output:
- *     true: found device
- *     false: can't find device
+ *     > 0: current frame count (1 ~ UINT_MAX)
+ *     = 0: failed to query a frame from device
  */
 unsigned int voxel3d_queryframe(unsigned short *depthmap,
                                 unsigned short *irmap);
@@ -91,8 +91,7 @@ int voxel3d_generatePointCloud(unsigned short *depthmap, float *xyz);
 /*
  * Function name: voxel3d_read_fw_version
  * Description:
- *     Generate pointcloud data based on input deptpmap and the
- *     calibration parameters from 5Z01A camera
+ *     Read out camera F/W version
  * Note:
  *     Call this function after voxel3d_init() is completed and successfully,
  *     otherwise, it returns false
