@@ -1,0 +1,10 @@
+<launch>
+    <!-- confidence threshold value -->
+    <arg name="range_mode"          default="2"/>
+    <arg name="conf_threshold"      default="40"/>
+
+    <node pkg="voxel3d_node" name="voxel3d_node" type="voxel3d_node" output="screen">
+        <param name="range_mode"        type="int"  value="$(arg range_mode)"/>
+        <param name="conf_threshold"    type="int"  value="$(arg conf_threshold)"/>
+    </node>
+</launch>

@@ -11,6 +11,9 @@
 #include <pcl/point_types.h>
 #include "voxel3d.h"
 
+#define NUM_VERSION(m, n, r)    (m * 10000 + n * 100 + r)
+#define MIN_FW_VERSION          NUM_VERSION(2, 0, 5)
+
 static const std::string TOPIC_NAME_CONF = "/voxel3d/confidence";
 static const std::string TOPIC_NAME_DEPTH = "/voxel3d/depth";
 static const std::string TOPIC_NAME_POINTS = "/voxel3d/points";
@@ -90,6 +93,44 @@ int voxel3d_build_cam_info(sensor_msgs::CameraInfo *p_cam_info)
     return (ret);
 }
 
+int voxel3d_config_params(const ros::NodeHandle &_nh)
+{
+    int range_mode = 0;
+    int conf_threshold = 40;
+    int ret = false;
+    char buf[64];
+
+    ret = voxel3d_read_prod_sn(buf, sizeof(buf));
+    if (ret) {
+        ROS_INFO("5Voexl 5Z01A S/N: %s", buf);
+    }
+
+    ret = voxel3d_read_fw_version(buf, sizeof(buf));
+    if (ret) {
+        int maj, min, rel;
+
+        ROS_INFO("5Voexl 5Z01A FW version: %s", buf);
+        sscanf(buf, "V%d.%d.%d", &maj, &min, &rel);
+
+        if (NUM_VERSION(maj, min, rel) < MIN_FW_VERSION) {
+            ROS_WARN("To work with latest ROS driver, please upgrade 5Z01A Camera F/W");
+            ROS_WARN("F/W upgrade support contact: support@5voxel.com");
+        }
+    }
+
+    if (_nh.getParam("/voxel3d_node/range_mode", range_mode)) {
+        if (range_mode >= SHORT_RANGE && range_mode <= LONG_RANGE) {
+            voxel3d_set_range_mode((unsigned int)range_mode);
+        }
+    }
+
+    if (_nh.getParam("/voxel3d_node/conf_threshold", conf_threshold)) {
+        if (conf_threshold >= MIN_CONF_THRESHOLD) {
+            voxel3d_set_conf_threshold((unsigned int)conf_threshold);
+        }
+    }
+}
+
 int voxel3d_publishImage(void)
 {
     unsigned int frame_index = 0;
@@ -97,6 +138,8 @@ int voxel3d_publishImage(void)
     float *f_data;
     ros::Time ros_time;
     ros::NodeHandle nh;
+
+    voxel3d_config_params(nh);
 
     /*
      * Depth topic
@@ -174,7 +217,7 @@ int voxel3d_publishImage(void)
          */
         pcl_pixels = voxel3d_generatePointCloud(
                       &depthmap[0],
-                      (float *)xyz);
+                          (float *)xyz);
 
         /*
          * Publish PointCloud2
@@ -236,7 +279,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "voxel3d_node");
     ret = voxel3d_init();
     if (!ret) {
-    return (-1);
+        return (-1);
     }
 
     voxel3d_publishImage();

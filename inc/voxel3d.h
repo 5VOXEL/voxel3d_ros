@@ -17,6 +17,14 @@
 #define TOF_IR_ONLY_FRAME_SIZE    TOF_DEPTH_ONLY_FRAME_SIZE
 #define TOF_DEPTH_IR_FRAME_SIZE   (TOF_IR_ONLY_FRAME_SIZE * 2)
 
+#define MIN_CONF_THRESHOLD        (10)
+
+enum _range_mode {
+    SHORT_RANGE = 1,
+    MIDDLE_RANGE,
+    LONG_RANGE,
+};
+
 struct CameraInfo {
     float focalLengthFx;
     float focalLengthFy;
@@ -105,6 +113,39 @@ int voxel3d_generatePointCloud(unsigned short *depthmap, float *xyz);
 int voxel3d_read_fw_version(char *fw_ver, int max_len);
 
 /*
+ * Function name: voxel3d_read_fw_build_date
+ * Description:
+ *     Read out camera F/W build date
+ * Note:
+ *     Call this function after voxel3d_init() is completed and successfully,
+ *     otherwise, it returns false
+ * Input:
+ *     fw_build_date: pointer of user-allocated buffer to store fw build date
+ *                    string
+ *     max_len: length of user-allocated buffer
+ * Output:
+ *     true: buffer shall be filled with F/W build date string
+ *     false: failed to get F/W version from device or error on input parameters
+ */
+int voxel3d_read_fw_build_date(char *fw_build_date, int max_len);
+
+/*
+ * Function name: voxel3d_read_prod_sn
+ * Description:
+ *     Read out camera production serial number
+ * Note:
+ *     Call this function after voxel3d_init() is completed and successfully,
+ *     otherwise, it returns false
+ * Input:
+ *     prod_sn: pointer of user-allocated buffer to store product s/n string
+ *     max_len: length of user-allocated buffer
+ * Output:
+ *     true: buffer shall be filled with product s/n string
+ *     false: failed to get product s/n from device or error on input parameters
+ */
+int voxel3d_read_prod_sn(char *prod_sn, int max_len);
+
+/*
  * Function name: voxel3d_read_camera_info
  * Description:
  *     Grab camera info from 5Voxel library
@@ -119,4 +160,71 @@ int voxel3d_read_fw_version(char *fw_ver, int max_len);
  *            parameter
  */
 int voxel3d_read_camera_info(CameraInfo *cam_info);
+
+/*
+ * Function name: voxel3d_get_conf_threshold
+ * Description:
+ *     Get current confidence threshold value from camera
+ * Note:
+ *     Call this function after voxel3d_init() is completed and successfully,
+ *     otherwise, it returns false
+ * Input:
+ *     None
+ * Output:
+ *     >= 0: confidence threshold value read from camera
+ *     < 0: failed to get confidence threshold
+ */
+int voxel3d_get_conf_threshold(void);
+
+/*
+ * Function name: voxel3d_set_conf_threshold
+ * Description:
+ *     Set run-time confidence threshold to camera
+ * Note:
+ *     1. Call this function after voxel3d_init() is completed and successfully,
+ *         otherwise, it returns false
+ *     2. Phase will be 0 if pixel confidence is lower than threshold
+ *     3. The value will go back to default when camera is power-cycled
+ * Input:
+ *     conf_threshold: 0~4095
+ * Output:
+ *     true: set confidence threshold successfully
+ *     false: failed to set confidence threshold
+ */
+int voxel3d_set_conf_threshold(unsigned int conf_threshold);
+
+ /*
+  * Function name: voxel3d_get_range_mode
+  * Description:
+  *     Get current range mode setting from camera
+  * Note:
+  *     Call this function after voxel3d_init() is completed and successfully,
+  *     otherwise, it returns false
+  * Input:
+  *     None
+  * Output:
+  *     1~3: 1 -> short range
+  *          2 -> middle range
+  *          3 -> long range
+  *     others: failed to get range mode
+  */
+ int voxel3d_get_range_mode(void);
+
+ /*
+  * Function name: voxel3d_set_range_mode
+  * Description:
+  *     Set range mode to camera
+  * Note:
+  *     Call this function after voxel3d_init() is completed and successfully,
+  *     otherwise, it returns false
+  * Input:
+  *     range_mode: only accept 1 ~ 3, others will return failure
+  *          1 -> short range
+  *          2 -> middle range
+  *          3 -> long range
+  * Output:
+  *     true: set range mode successfully
+  *     false: failed to set range mode
+  */
+ int voxel3d_set_range_mode(unsigned int range_mode);
 
