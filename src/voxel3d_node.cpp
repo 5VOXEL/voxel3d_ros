@@ -97,6 +97,7 @@ int voxel3d_config_params(const ros::NodeHandle &_nh)
 {
     int range_mode = 0;
     int conf_threshold = 40;
+    bool auto_exposure = false;
     int ret = false;
     char buf[64];
 
@@ -119,7 +120,7 @@ int voxel3d_config_params(const ros::NodeHandle &_nh)
     }
 
     if (_nh.getParam("/voxel3d_node/range_mode", range_mode)) {
-        if (range_mode >= SHORT_RANGE && range_mode <= LONG_RANGE) {
+        if (range_mode >= SHORT_RANGE_MODE && range_mode <= LONG_RANGE_MODE) {
             voxel3d_set_range_mode((unsigned int)range_mode);
         }
     }
@@ -128,6 +129,10 @@ int voxel3d_config_params(const ros::NodeHandle &_nh)
         if (conf_threshold >= MIN_CONF_THRESHOLD) {
             voxel3d_set_conf_threshold((unsigned int)conf_threshold);
         }
+    }
+
+    if (_nh.getParam("/voxel3d_node/auto_exposure", auto_exposure)) {
+        voxel3d_set_auto_exposure_mode((unsigned int)auto_exposure);
     }
 }
 
