@@ -10,9 +10,9 @@
 #ifdef PLAT_WINDOWS
 #pragma once
 
-#ifdef VOXEL3D_LIB_EXPORTS
+#ifdef LIBVOXEL3D_EXPORTS
 #define VOXEL3D_API_DLL __declspec(dllexport)
-#elif VOXEL3D_LIB_STATIC
+#elif LIBVOXEL3D_STATIC
 #define VOXEL3D_API_DLL
 #else
 #define VOXEL3D_API_DLL __declspec(dllimport)
@@ -37,7 +37,7 @@
 
 #define MIN_CONF_THRESHOLD        (10)
 
-enum _m_mode {
+enum _range_mode {
     SHORT_RANGE_MODE = 1,
     MIDDLE_RANGE_MODE,
     LONG_RANGE_MODE,
@@ -143,7 +143,7 @@ extern "C" VOXEL3D_API_DLL int voxel3d_read_fw_version(char *fw_ver, unsigned in
  *     max_len: length of user-allocated buffer
  * Output:
  *     true: buffer shall be filled with F/W build date string
- *     false: failed to get F/W version from device or error on input parameters
+ *     false: failed to get F/W build date from device or error on input parameters
  */
 extern "C" VOXEL3D_API_DLL int voxel3d_read_fw_build_date(char *fw_build_date, unsigned int max_len);
 
@@ -279,5 +279,48 @@ extern "C" VOXEL3D_API_DLL int voxel3d_get_auto_exposure_mode(void);
   */
 extern "C" VOXEL3D_API_DLL int voxel3d_set_auto_exposure_mode(unsigned int enable);
 
- 
+/*
+ * Function name: voxel3d_get_depth_hfov
+ * Description:
+ *     Get camera HFoV
+ * Note:
+ *     Call this function after voxel3d_init() is completed and successfully,
+ *     otherwise, it returns false
+ * Input:
+ *     None
+ * Output:
+ *     > 0: calculated camera HFoV
+ *     <=0: failed to get camera HFoV
+ */
+extern "C" VOXEL3D_API_DLL float voxel3d_get_depth_hfov(void);
+
+/*
+ * Function name: voxel3d_get_depth_vfov
+ * Description:
+ *     Get camera VFoV
+ * Note:
+ *     Call this function after voxel3d_init() is completed and successfully,
+ *     otherwise, it returns false
+ * Input:
+ *     None
+ * Output:
+ *     > 0: calculated camera VFoV
+ *     <=0: failed to get camera VFoV
+ */
+extern "C" VOXEL3D_API_DLL float voxel3d_get_depth_vfov(void);
+
+/*
+ * Function name: voxel3d_read_lib_build_date
+ * Description:
+ *     Read out library build date
+ * Input:
+ *     lib_build_date: pointer of user-allocated buffer to store library build date
+ *                    string
+ *     max_len: length of user-allocated buffer
+ * Output:
+ *     true: buffer shall be filled with library build date string
+ *     false: failed to get library build date
+ */
+extern "C" VOXEL3D_API_DLL int voxel3d_read_lib_build_date(char* lib_build_date, int max_len);
+
 #endif /* __VOXEL3d_H__ */
