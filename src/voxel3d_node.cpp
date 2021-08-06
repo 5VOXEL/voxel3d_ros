@@ -101,16 +101,21 @@ int voxel3d_config_params(const ros::NodeHandle &_nh)
     int ret = false;
     char buf[64];
 
+    ret = voxel3d_read_lib_version(buf, sizeof(buf));
+    if (ret) {
+        ROS_INFO("5Voxel Library version: %s", buf);
+    }
+
     ret = voxel3d_read_prod_sn(buf, sizeof(buf));
     if (ret) {
-        ROS_INFO("5Voexl 5Z01A S/N: %s", buf);
+        ROS_INFO("5Voxel 5Z01A S/N: %s", buf);
     }
 
     ret = voxel3d_read_fw_version(buf, sizeof(buf));
     if (ret) {
         int maj, min, rel;
 
-        ROS_INFO("5Voexl 5Z01A FW version: %s", buf);
+        ROS_INFO("5Voxel 5Z01A FW version: %s", buf);
         sscanf(buf, "V%d.%d.%d", &maj, &min, &rel);
 
         if (NUM_VERSION(maj, min, rel) < MIN_FW_VERSION) {

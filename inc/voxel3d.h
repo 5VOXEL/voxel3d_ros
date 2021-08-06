@@ -310,6 +310,20 @@ extern "C" VOXEL3D_API_DLL float voxel3d_get_depth_hfov(void);
 extern "C" VOXEL3D_API_DLL float voxel3d_get_depth_vfov(void);
 
 /*
+ * Function name: voxel3d_read_lib_version
+ * Description:
+ *     Read out library version
+ * Input:
+ *     lib_version: pointer of user-allocated buffer to store library version
+ *                    string
+ *     max_len: length of user-allocated buffer
+ * Output:
+ *     true: buffer shall be filled with library version string
+ *     false: failed to get library version
+ */
+extern "C" VOXEL3D_API_DLL int voxel3d_read_lib_version(char* lib_version, int max_len);
+
+/*
  * Function name: voxel3d_read_lib_build_date
  * Description:
  *     Read out library build date
