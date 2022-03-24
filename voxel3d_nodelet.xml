@@ -1,0 +1,8 @@
+<library path="lib/libvoxel3d_nodelet">
+	<class name="voxel3d_nodelet/Voxel3dNodelet" type="voxel3d_nodelet_ns::Voxel3dNodelet"
+		base_class_type="nodelet::Nodelet">
+		<description>
+			ROS Nodelet for 5Voxel 5Z01A ToF camera.
+		</description>
+	</class>
+</library>

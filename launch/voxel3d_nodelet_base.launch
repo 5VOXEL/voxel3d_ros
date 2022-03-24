@@ -1,0 +1,21 @@
+<launch>
+    <arg name="namespace" default="voxel3d_nodelet_ns" doc="Desired namespace for the camera nodelet" />
+    <arg name="camera"              default="camera"/>
+    <arg name="range_mode"          default="2"/>
+    <arg name="conf_threshold"      default="40"/>
+    <arg name="auto_exposure"       default="false"/>
+    <arg name="serial_number"       default=""/>
+
+	<node pkg="nodelet"
+          type="nodelet"
+          name="$(arg camera)"
+          args="load voxel3d_nodelet/Voxel3dNodelet voxel3d_nodelet_manager"
+          ns="$(arg namespace)"
+          output="screen">
+        <param name="camera"            type="string"   value="$(arg camera)"/>
+        <param name="serial_number"     type="string"   value="$(arg serial_number)"/>
+        <param name="range_mode"        type="int"      value="$(arg range_mode)"/>
+        <param name="conf_threshold"    type="int"      value="$(arg conf_threshold)"/>
+        <param name="auto_exposure"     type="bool"     value="$(arg auto_exposure)"/>
+	</node>
+</launch>

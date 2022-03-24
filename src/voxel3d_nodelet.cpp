@@ -1,34 +1,48 @@
 /*******************************************************
  *
- *  Copyright (c) 2021 5Voxel Co., Ltd.
+ *  Copyright (c) 2022 5Voxel Co., Ltd.
  *
  *******************************************************/
 
 #include <ros/ros.h>
+#include <nodelet/nodelet.h>
+#include "voxel3d.h"
+#include "voxel3d_nodelet.h"
+#include <pluginlib/class_list_macros.h>
 #include <image_transport/image_transport.h>
 #include <sensor_msgs/image_encodings.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_types.h>
-#include "voxel3d.h"
 
 #define NUM_VERSION(m, n, r)    (m * 10000 + n * 100 + r)
 #define MIN_FW_VERSION          NUM_VERSION(2, 0, 5)
 
-static const std::string TOPIC_NAME_CONF = "/voxel3d/confidence";
-static const std::string TOPIC_NAME_DEPTH = "/voxel3d/depth";
-static const std::string TOPIC_NAME_POINTS = "/voxel3d/points";
-static const std::string TOPIC_NAME_CAMERA_INFO = "/voxel3d/camera_info";
+static const std::string _NAME_CONF = "confidence";
+static const std::string _NAME_DEPTH = "depth";
+static const std::string _NAME_POINTS = "points";
+static const std::string _NAME_CAMERA_INFO = "camera_info";
 
-static unsigned short depthmap[TOF_DEPTH_PIXELS];
-static float xyz[TOF_DEPTH_PIXELS * 3];
+namespace voxel3d_nodelet_ns
+{
 
-int voxel3d_build_cam_info(sensor_msgs::CameraInfo *p_cam_info)
+Voxel3dNodelet::Voxel3dNodelet()
+{
+    cam_sn = "";
+    cam_name = "";
+}
+
+Voxel3dNodelet::~Voxel3dNodelet()
+{
+  voxel3d_release((char *)cam_sn.c_str());
+}
+
+int voxel3d_build_cam_info(std::string sn, sensor_msgs::CameraInfo *p_cam_info)
 {
     int ret = false;
 
     CameraInfo voxel3d_cam_info;
 
-    ret = voxel3d_read_camera_info(&voxel3d_cam_info);
+    ret = voxel3d_read_camera_info((char *)sn.c_str(), &voxel3d_cam_info);
     if (ret) {
         //Camera resolution
         p_cam_info->width = TOF_DEPTH_WIDTH;
@@ -93,29 +107,50 @@ int voxel3d_build_cam_info(sensor_msgs::CameraInfo *p_cam_info)
     return (ret);
 }
 
-int voxel3d_config_params(const ros::NodeHandle &_nh)
+
+int voxel3d_config_params(const ros::NodeHandle &_nh,
+                          std::string &cam_name,
+                          std::string &cam_sn)
 {
+    std::string dev_name, dev_sn;
     int range_mode = 0;
     int conf_threshold = 40;
     bool auto_exposure = false;
     int ret = false;
     char buf[64];
 
+    if (_nh.getParam("camera", dev_name)) {
+        cam_name.assign(dev_name);
+    } else {
+        cam_name.assign("camera");
+    }
+
+    if (_nh.getParam("serial_number", dev_sn)) {
+        cam_sn.assign(dev_sn);
+    } else {
+        cam_sn.assign("");
+    }
+
+    ROS_INFO("%s : serial number - %s", cam_name.c_str(), cam_sn.c_str());
+
+    ret = voxel3d_init((char *)cam_sn.c_str());
+    if (ret <= 0) {
+        ROS_ERROR("Error! Failed to find 5Voxel device SN: %s", (char *)cam_sn.c_str());
+        exit(0);
+    }
+
+    memset(buf, 0x0, sizeof(buf));
     ret = voxel3d_read_lib_version(buf, sizeof(buf));
     if (ret) {
-        ROS_INFO("5Voxel Library version: %s", buf);
+        ROS_INFO("%s : 5Voxel Library version - %s",cam_name.c_str(), buf);
     }
 
-    ret = voxel3d_read_prod_sn(buf, sizeof(buf));
-    if (ret) {
-        ROS_INFO("5Voxel 5Z01A S/N: %s", buf);
-    }
-
-    ret = voxel3d_read_fw_version(buf, sizeof(buf));
+    memset(buf, 0x0, sizeof(buf));
+    ret = voxel3d_read_fw_version((char *)cam_sn.c_str(), buf, sizeof(buf));
     if (ret) {
         int maj, min, rel;
 
-        ROS_INFO("5Voxel 5Z01A FW version: %s", buf);
+        ROS_INFO("%s : 5Voxel 5Z01A FW version - %s", cam_name.c_str(), buf);
         sscanf(buf, "V%d.%d.%d", &maj, &min, &rel);
 
         if (NUM_VERSION(maj, min, rel) < MIN_FW_VERSION) {
@@ -124,84 +159,95 @@ int voxel3d_config_params(const ros::NodeHandle &_nh)
         }
     }
 
-    if (_nh.getParam("/voxel3d_node/range_mode", range_mode)) {
+
+    if (_nh.getParam("range_mode", range_mode)) {
         if (range_mode >= SHORT_RANGE_MODE && range_mode <= LONG_RANGE_MODE) {
-            voxel3d_set_range_mode((unsigned int)range_mode);
+            ROS_INFO("%s : set range mode to %d", cam_name.c_str(), range_mode);
+            voxel3d_set_range_mode((char *)cam_sn.c_str(), (unsigned int)range_mode);
         }
     }
 
-    if (_nh.getParam("/voxel3d_node/conf_threshold", conf_threshold)) {
+    if (_nh.getParam("conf_threshold", conf_threshold)) {
         if (conf_threshold >= MIN_CONF_THRESHOLD) {
-            voxel3d_set_conf_threshold((unsigned int)conf_threshold);
+            ROS_INFO("%s : set confidence threshold to %d", cam_name.c_str(), conf_threshold);
+            voxel3d_set_conf_threshold((char *)cam_sn.c_str(), (unsigned int)conf_threshold);
         }
     }
 
-    if (_nh.getParam("/voxel3d_node/auto_exposure", auto_exposure)) {
-        voxel3d_set_auto_exposure_mode((unsigned int)auto_exposure);
+    if (_nh.getParam("auto_exposure", auto_exposure)) {
+        ROS_INFO("%s : %s auto exposure", cam_name.c_str(), auto_exposure ? "enable" : "disable");
+        voxel3d_set_auto_exposure_mode((char *)cam_sn.c_str(), (unsigned int)auto_exposure);
     }
 }
 
-int voxel3d_publishImage(void)
+void Voxel3dNodelet::onInit()
 {
-    unsigned int frame_index = 0;
-    int pcl_pixels = 0;
-    float *f_data;
-    ros::Time ros_time;
-    ros::NodeHandle nh;
+    ros::NodeHandle &nh = getPrivateNodeHandle();
+    int range_mode = 0, ret = 0;
+    std::string topic_name_depth, topic_name_conf;
+    std::string topic_name_points, topic_name_camera_info;
 
-    voxel3d_config_params(nh);
+    voxel3d_config_params(nh, this->cam_name, this->cam_sn);
 
     /*
      * Depth topic
      */
-    ROS_INFO("Topic : %s", TOPIC_NAME_DEPTH.c_str());
-    sensor_msgs::Image depth_image;
+    topic_name_depth = _NAME_DEPTH;
+    ROS_INFO("Topic : %s/%s", cam_name.c_str(), topic_name_depth.c_str());
     depth_image.width = TOF_DEPTH_WIDTH;
     depth_image.height = TOF_DEPTH_HEIGHT;
     depth_image.encoding = "32FC1";
     depth_image.is_bigendian = false;
     depth_image.step = depth_image.width * sizeof(float);
     depth_image.data.resize(depth_image.step * depth_image.height);
-    ros::Publisher pub_depth = nh.advertise<sensor_msgs::Image>(TOPIC_NAME_DEPTH, 1);
+    pub_depth = nh.advertise<sensor_msgs::Image>(topic_name_depth, 1);
 
     /*
      * IR topic
      */
-    ROS_INFO("Topic : %s", TOPIC_NAME_CONF.c_str());
-    sensor_msgs::Image ir_image;
+    topic_name_conf = _NAME_CONF;
+    ROS_INFO("Topic : %s/%s", cam_name.c_str(), topic_name_conf.c_str());
     ir_image.width = TOF_IR_WIDTH;
     ir_image.height = TOF_IR_HEIGHT;
     ir_image.encoding = "16UC1";
     ir_image.is_bigendian = false;
     ir_image.step = TOF_IR_WIDTH * sizeof(unsigned short);
     ir_image.data.resize(TOF_IR_ONLY_FRAME_SIZE);
-    ros::Publisher pub_conf = nh.advertise<sensor_msgs::Image>(TOPIC_NAME_CONF, 1);
+    pub_conf = nh.advertise<sensor_msgs::Image>(topic_name_conf, 1);
 
     /*
      * PointCloud topic
      */
-    ROS_INFO("Topic : %s", TOPIC_NAME_POINTS.c_str());
-    ros::Publisher pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(TOPIC_NAME_POINTS, 1);
+    topic_name_points = _NAME_POINTS;
+    ROS_INFO("Topic : %s/%s", cam_name.c_str(), topic_name_points.c_str());
+    pub_pointcloud = nh.advertise<sensor_msgs::PointCloud2>(topic_name_points, 1);
  
     /*
      * Camera_info topic
      */
-    ROS_INFO("Topic : %s", TOPIC_NAME_CAMERA_INFO.c_str());
-    ros::Publisher pub_camera_info = nh.advertise<sensor_msgs::CameraInfo>(TOPIC_NAME_CAMERA_INFO, 1);
-    sensor_msgs::CameraInfo camera_info;
-    voxel3d_build_cam_info(&camera_info);
+    topic_name_camera_info = _NAME_CAMERA_INFO;
+    ROS_INFO("Topic : %s/%s", cam_name.c_str(), topic_name_camera_info.c_str());
+    pub_camera_info = nh.advertise<sensor_msgs::CameraInfo>(topic_name_camera_info, 1);
+    voxel3d_build_cam_info(cam_sn, &camera_info);
 
-    ros::Rate loop_rate(15);
+    publoop_timer = nh.createTimer(
+      ros::Duration(.04), &Voxel3dNodelet::Run, this);
+}
 
-    while (nh.ok())
-    {
-        /*
-         * Query frame from 5Voxel 5Z01A
-         */
-        frame_index = voxel3d_queryframe(
-                       (unsigned short *)&depthmap[0],
-                       (unsigned short *)&(ir_image.data[0]));
+void Voxel3dNodelet::Run(const ros::TimerEvent &)
+{
+    unsigned int frame_index = 0;
+    int pcl_pixels = 0;
+    float *f_data;
 
+    /*
+     * Query frame from 5Voxel 5Z01A
+     */
+    frame_index = voxel3d_queryframe((char *)cam_sn.c_str(),
+                   (unsigned short *)&depthmap[0],
+                   (unsigned short *)&(ir_image.data[0]));
+
+    if (frame_index > 0) {
         ros_time = ros::Time::now();
 
         /*
@@ -216,7 +262,7 @@ int voxel3d_publishImage(void)
         pub_depth.publish(depth_image);
 
         /*
-         * Publish Depth image
+         * Publish IR image
          */
         ir_image.header.frame_id = frame_index;
         ir_image.header.stamp = ros_time;
@@ -225,8 +271,8 @@ int voxel3d_publishImage(void)
         /*
          * 5Voxel library to generate PointCloud data
          */
-        pcl_pixels = voxel3d_generatePointCloud(
-                      &depthmap[0],
+        pcl_pixels = voxel3d_generatePointCloud((char *)cam_sn.c_str(),
+                          &depthmap[0],
                           (float *)xyz);
 
         /*
@@ -276,25 +322,9 @@ int voxel3d_publishImage(void)
         camera_info.header.stamp = ros_time;
         pub_camera_info.publish(camera_info);
 
-        ros::spinOnce();
-        loop_rate.sleep();
     }
-
 }
 
-int main(int argc, char** argv)
-{
-    int ret = -1;
+} // namespace voxel3d_nodelet_ns
 
-    ros::init(argc, argv, "voxel3d_node");
-    ret = voxel3d_init();
-    if (!ret) {
-        return (-1);
-    }
-
-    voxel3d_publishImage();
-
-    voxel3d_release();
-    return 0;
-}
-
+PLUGINLIB_EXPORT_CLASS(voxel3d_nodelet_ns::Voxel3dNodelet, nodelet::Nodelet)
