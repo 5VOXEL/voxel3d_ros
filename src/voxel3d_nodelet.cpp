@@ -108,11 +108,9 @@ int voxel3d_build_cam_info(std::string sn, sensor_msgs::CameraInfo *p_cam_info)
 }
 
 
-int voxel3d_config_params(const ros::NodeHandle &_nh,
-                          std::string &cam_name,
-                          std::string &cam_sn)
+int Voxel3dNodelet::voxel3d_config_params(const ros::NodeHandle &_nh)
 {
-    std::string dev_name, dev_sn;
+    std::string dev_name, dev_sn, dev_pcl_frame_id;
     int range_mode = 0;
     int conf_threshold = 40;
     bool auto_exposure = false;
@@ -178,6 +176,11 @@ int voxel3d_config_params(const ros::NodeHandle &_nh,
         ROS_INFO("%s : %s auto exposure", cam_name.c_str(), auto_exposure ? "enable" : "disable");
         voxel3d_set_auto_exposure_mode((char *)cam_sn.c_str(), (unsigned int)auto_exposure);
     }
+
+    if (_nh.getParam("frame_id", dev_pcl_frame_id)) {
+        cam_pcl_frame_id.assign(dev_pcl_frame_id);
+        ROS_INFO("%s : set PointCloud2 frame id to %s", cam_name.c_str(), cam_pcl_frame_id.c_str());
+    }
 }
 
 void Voxel3dNodelet::onInit()
@@ -187,7 +190,7 @@ void Voxel3dNodelet::onInit()
     std::string topic_name_depth, topic_name_conf;
     std::string topic_name_points, topic_name_camera_info;
 
-    voxel3d_config_params(nh, this->cam_name, this->cam_sn);
+    voxel3d_config_params(nh);
 
     /*
      * Depth topic
@@ -282,7 +285,7 @@ void Voxel3dNodelet::Run(const ros::TimerEvent &)
             int xyz_idx = 0;
 
             sensor_msgs::PointCloud2 cloud;
-            cloud.header.frame_id = "odom";
+            cloud.header.frame_id = cam_pcl_frame_id;
             cloud.header.stamp = ros_time;
             cloud.width = pcl_pixels;
             cloud.height = 1;

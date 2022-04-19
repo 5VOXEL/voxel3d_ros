@@ -4,6 +4,7 @@
     <arg name="range_mode"          default="2"/>
     <arg name="conf_threshold"      default="40"/>
     <arg name="auto_exposure"       default="false"/>
+    <arg name="frame_id"            default="odom"/>
     <arg name="serial_number"       default=""/>
 
 	<node pkg="nodelet"
@@ -17,5 +18,6 @@
         <param name="range_mode"        type="int"      value="$(arg range_mode)"/>
         <param name="conf_threshold"    type="int"      value="$(arg conf_threshold)"/>
         <param name="auto_exposure"     type="bool"     value="$(arg auto_exposure)"/>
+        <param name="frame_id"          type="string"   value="$(arg frame_id)"/>
 	</node>
 </launch>

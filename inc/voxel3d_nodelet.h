@@ -23,6 +23,8 @@ namespace voxel3d_nodelet_ns
 
         virtual void onInit();
 
+        int voxel3d_config_params(const ros::NodeHandle &_nh);
+
     private:
         ros::Publisher pub_depth;
         ros::Publisher pub_conf;
@@ -38,6 +40,7 @@ namespace voxel3d_nodelet_ns
 
         std::string cam_sn;
         std::string cam_name;
+        std::string cam_pcl_frame_id;
 
         unsigned short depthmap[TOF_DEPTH_PIXELS];
         float xyz[TOF_DEPTH_PIXELS * 3];

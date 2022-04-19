@@ -18,6 +18,7 @@
     <arg name="cam1_range_mode"     default="2"/>
     <arg name="cam1_conf_threshold" default="40"/>
     <arg name="cam1_auto_exposure"  default="false"/>
+    <arg name="cam1_frame_id"       default="odom"/>
 
     <!-- nodelet nodelet manager -->
     <node pkg="nodelet"
@@ -36,6 +37,7 @@
         <arg name="range_mode"     value="$(arg cam1_range_mode)"/>
         <arg name="conf_threshold" value="$(arg cam1_conf_threshold)"/>
         <arg name="auto_exposure"  value="$(arg cam1_auto_exposure)"/>
+        <arg name="frame_id"       value="$(arg cam1_frame_id)"/>
     </include>
 
 </launch>
