@@ -14,7 +14,7 @@ ROS nodelet to work with 5Voxel 5Z01A 3D camera(s), and publish following topics
  Note:
    1. camera name, as an argument in ROS nodelet, can be set within launch file or taken from the command line.  
       The name of topics will be updated accordingly. See more parameters in launch file.  
-          &nbsp;&nbsp;ex: "ros_launch voxel3d_nodelet multi_cameras.launch cam1_name:=Left_cam cam2:=Right_cam"  
+          &nbsp;&nbsp;ex: "roslaunch voxel3d_nodelet multi_cameras.launch cam1_name:=Left_cam cam2:=Right_cam"  
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;topics become /voxel3d_nodelet_ns/Left_cam/confidence ...
    2. To run multiple cameras, you need to set the corresponding "serial_number" parameters in multi_cameras.launch.  
       Library will scan devices based on these parameters, and fail if any of them can't be found.
@@ -35,14 +35,16 @@ Open a terminal 1:
 `$ roscore`
 
 Open a terminal 2:
-Run image_view to receive two topics: /voxel3d/depth and /voxel3d/confidence
+Run image_view to receive two topics: /voxel3d_nodelet_ns/camera1/depth and /voxel3d_nodelet_ns/camera1/confidence
+Note: topics might be changed based on configured camera name
 
-`$ rosrun image_view image_view image:=/voxel3d/depth`
-`$ rosrun image_view image_view image:=/voxel3d/confidence`
+`$ rosrun image_view image_view image:=/voxel3d_nodelet_ns/camera1/depth`
+`$ rosrun image_view image_view image:=/voxel3d_nodelet_ns/camera1/confidence`
 
 Open a terminal 3:
 Run image publisher.
 
+`$ ros_launch voxel3d_nodelet single_cameras.launch`, or
 `$ ros_launch voxel3d_nodelet multi_cameras.launch`
 
 Open a terminal 4:
