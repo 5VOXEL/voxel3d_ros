@@ -38,14 +38,14 @@ Open a terminal 2:
 Run image_view to receive two topics: /voxel3d_nodelet_ns/camera1/depth and /voxel3d_nodelet_ns/camera1/confidence
 Note: topics might be changed based on configured camera name
 
-`$ rosrun image_view image_view image:=/voxel3d_nodelet_ns/camera1/depth`
-`$ rosrun image_view image_view image:=/voxel3d_nodelet_ns/camera1/confidence`
+`$ rosrun image_view image_view image:=/voxel3d_nodelet_ns/camera1/depth`  
+`$ rosrun image_view image_view image:=/voxel3d_nodelet_ns/camera1/confidence`  
 
 Open a terminal 3:
 Run image publisher.
 
-`$ ros_launch voxel3d_nodelet single_cameras.launch`, or
-`$ ros_launch voxel3d_nodelet multi_cameras.launch`
+`$ ros_launch voxel3d_nodelet single_camera.launch`, or  
+`$ ros_launch voxel3d_nodelet multi_cameras.launch`  
 
 Open a terminal 4:
 Run rviz to receive also pointcloud topic: /voxel3d_nodelet_ns/camera1/points
